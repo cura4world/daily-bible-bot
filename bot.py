@@ -1,34 +1,24 @@
 #!/usr/bin/env python3
-import os, json, requests
-from datetime import datetime
+import os, requests
+from datetime import date
 from bible_data import get_reading_plan, get_youversion_link
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-PROGRESS_FILE = "progress.json"
+
+# 야고보서 1장 시작일 (2026-05-01 = plan[1])
+START_DATE = date(2026, 5, 1)
+START_INDEX = 1
 START_BOOK = "HEB"
 START_CHAPTER = 13
 
-def load_progress():
-    if os.path.exists(PROGRESS_FILE):
-        with open(PROGRESS_FILE, "r") as f:
-            return json.load(f)
-    return {"day_index": 0}
-
-def save_progress(progress):
-    with open(PROGRESS_FILE, "w") as f:
-        json.dump(progress, f)
-
 def get_todays_reading():
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
-    progress = load_progress()
-    day_index = progress.get("day_index", 0)
+    days_elapsed = (date.today() - START_DATE).days
+    day_index = START_INDEX + days_elapsed
     if day_index >= len(plan):
-        day_index = 0
-    chapters = plan[day_index]
-    progress["day_index"] = day_index + 1
-    save_progress(progress)
-    return chapters, day_index + 1
+        day_index = day_index % len(plan)
+    return plan[day_index], day_index + 1
 
 def format_chapter_range(chapters):
     if len(chapters) == 1:
@@ -50,7 +40,6 @@ def generate_message(chapters, day_number):
     first_ch = chapters[0]
     link = get_youversion_link(first_ch["youversion_book"], first_ch["chapter"])
 
-    # 서로소(11, 13, 17)로 나눠 조합이 겹치지 않음 → 최대 2,431가지 조합
     g_idx = day_number % 11
     i_idx = day_number % 13
     c_idx = day_number % 17
@@ -68,7 +57,6 @@ def generate_message(chapters, day_number):
         "Dengan sukacita menyapa kalian pagi ini 🌸",
         "Pagi ini kita mulai dengan firman Tuhan 📖",
     ]
-
     intros = [
         f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} 📖",
         f"Bacaan firman kita hari ini adalah {book_range} 📖",
@@ -84,7 +72,6 @@ def generate_message(chapters, day_number):
         f"Kiranya {book_range} memberkati kita hari ini 📖",
         f"Dengarkanlah firman Tuhan hari ini dari {book_range} 📖",
     ]
-
     closings = [
         "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini ❤️",
         "Kiranya firman-Nya menguatkan langkah kita hari ini ❤️",
@@ -113,10 +100,10 @@ def send_telegram(message):
     response = requests.post(url, json=payload)
     response.raise_for_status()
     print("Message sent!")
-    return response.json()
 
 def main():
-    print(f"Running at {datetime.now()}")
+    from datetime import datetime
+    print(f"Running at {datetime.now()}, today={date.today()}")
     chapters, day_number = get_todays_reading()
     print(f"Day {day_number}: {format_chapter_range(chapters)}")
     message = generate_message(chapters, day_number)
