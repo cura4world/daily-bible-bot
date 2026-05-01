@@ -1,0 +1,67 @@
+name: Daily Bible Bot
+
+on:
+  schedule:
+    # Runs at random minute between 7:00~8:00 KST (= 22:00~23:00 UTC previous day)
+    # GitHub Actions uses UTC. KST = UTC+9
+    # 07:00 KST = 22:00 UTC (prev day), 08:00 KST = 23:00 UTC (prev day)
+    # We schedule multiple times across the window and use a random skip in the script
+    - cron: '0 22 * * *'   # 07:00 KST
+    - cron: '10 22 * * *'  # 07:10 KST
+    - cron: '20 22 * * *'  # 07:20 KST
+    - cron: '30 22 * * *'  # 07:30 KST
+    - cron: '40 22 * * *'  # 07:40 KST
+    - cron: '50 22 * * *'  # 07:50 KST
+    - cron: '0 23 * * *'   # 08:00 KST
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  send-bible-message:
+    runs-on: ubuntu-latest
+    # Only ONE slot should actually run — we use a random check
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Random slot check (only 1 of 7 runs proceeds)
+        id: random_check
+        run: |
+          # Each cron fires independently. We pick a random number 0-6
+          # and only proceed if it matches the current "slot index"
+          # Since we can't know which cron fired, we use minute-based slot
+          MINUTE=$(date -u +%M)
+          SLOT=$((MINUTE / 10))   # 0,1,2,3,4,5
+          RANDOM_SLOT=$((RANDOM % 7))
+          echo "Current slot: $SLOT, Random slot: $RANDOM_SLOT"
+          if [ "$SLOT" -eq "$RANDOM_SLOT" ]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Python
+        if: steps.random_check.outputs.proceed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        if: steps.random_check.outputs.proceed == 'true'
+        run: pip install anthropic requests
+
+      - name: Run Bible Bot
+        if: steps.random_check.outputs.proceed == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python bot.py
+
+      - name: Commit progress
+        if: steps.random_check.outputs.proceed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Bible Bot"
+          git add progress.json
+          git diff --staged --quiet || git commit -m "📖 Day progress update $(date -u +%Y-%m-%d)"
+          git push
