@@ -12,7 +12,7 @@ BIBLE_CHAPTERS = {
         "youversion_book": "HEB",
         "chapters": [
             340, 360, 300, 280, 420, 380, 420, 520, 480, 460,  # 1-10
-            600, 480, 420, 360  # 11-14 (Hebrews has 13 chapters, index 13 = ch13)
+            600, 480, 420  # 11-13 (Hebrews has 13 chapters, index 13 = ch13)
         ]
     },
     "JAS": {
