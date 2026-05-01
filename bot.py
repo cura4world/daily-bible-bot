@@ -1,29 +1,14 @@
 #!/usr/bin/env python3
-"""
-Daily Bible Listening Bot
-- Reads from reading plan (stored in progress.json)
-- Generates WhatsApp-ready message via Claude API
-- Sends to Telegram
-"""
-
-import os
-import json
-import random
-import requests
-import anthropic
+import os, json, random, requests
 from datetime import datetime
-from bible_data import get_reading_plan, get_youversion_link, BIBLE_CHAPTERS
+from bible_data import get_reading_plan, get_youversion_link
 
-# ── Config from environment variables ──────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-
 PROGRESS_FILE = "progress.json"
 START_BOOK = "HEB"
-START_CHAPTER = 13  # Hebrews 13
+START_CHAPTER = 13
 
-# ── Progress tracking ──────────────────────────────────────────────────────────
 def load_progress():
     if os.path.exists(PROGRESS_FILE):
         with open(PROGRESS_FILE, "r") as f:
@@ -34,135 +19,92 @@ def save_progress(progress):
     with open(PROGRESS_FILE, "w") as f:
         json.dump(progress, f)
 
-# ── Reading plan ───────────────────────────────────────────────────────────────
 def get_todays_reading():
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
     progress = load_progress()
     day_index = progress.get("day_index", 0)
-
     if day_index >= len(plan):
         day_index = 0
-
     chapters = plan[day_index]
     progress["day_index"] = day_index + 1
     save_progress(progress)
-
     return chapters, day_index + 1
 
-# ── YouVersion links ───────────────────────────────────────────────────────────
 def build_links(chapters):
-    links = []
-    for ch in chapters:
-        link = get_youversion_link(ch["youversion_book"], ch["chapter"])
-        links.append(link)
-    return links
+    return [get_youversion_link(ch["youversion_book"], ch["chapter"]) for ch in chapters]
 
 def format_chapter_range(chapters):
     if len(chapters) == 1:
         ch = chapters[0]
         return f"{ch['book_name']} pasal {ch['chapter']}"
-
-    books = list(set(ch["book_name"] for ch in chapters))
+    books = list(dict.fromkeys(ch["book_name"] for ch in chapters))
     if len(books) == 1:
-        chapter_nums = [str(ch["chapter"]) for ch in chapters]
-        if len(chapter_nums) == 2:
-            return f"{books[0]} pasal {chapter_nums[0]} dan {chapter_nums[1]}"
-        else:
-            return f"{books[0]} pasal {', '.join(chapter_nums[:-1])}, dan {chapter_nums[-1]}"
-    else:
-        parts = [f"{ch['book_name']} pasal {ch['chapter']}" for ch in chapters]
-        if len(parts) == 2:
-            return f"{parts[0]} dan {parts[1]}"
-        else:
-            return f"{', '.join(parts[:-1])}, dan {parts[-1]}"
+        nums = [str(ch["chapter"]) for ch in chapters]
+        if len(nums) == 2:
+            return f"{books[0]} pasal {nums[0]} dan {nums[1]}"
+        return f"{books[0]} pasal {', '.join(nums[:-1])}, dan {nums[-1]}"
+    parts = [f"{ch['book_name']} pasal {ch['chapter']}" for ch in chapters]
+    if len(parts) == 2:
+        return f"{parts[0]} dan {parts[1]}"
+    return f"{', '.join(parts[:-1])}, dan {parts[-1]}"
 
-# ── Message generation via Claude ─────────────────────────────────────────────
 def generate_message(chapters, links, day_number):
     book_range = format_chapter_range(chapters)
     links_text = "\n".join(links)
 
-    tone_variants = [
-        "santai dan hangat, seperti teman dekat yang menyapa",
-        "semangat dan penuh sukacita",
-        "lembut dan penuh kasih",
-        "singkat dan to the point, tapi tetap hangat",
-        "penuh rasa syukur dan harapan",
-        "seperti seorang gembala yang mengajak jemaat dengan penuh kasih",
-        "sederhana dan tulus"
+    greetings = [
+        "Shalom, selamat pagi \u{1F60A}",
+        "Syalom! Selamat pagi \u{1F31E}",
+        "Selamat pagi, saudara-saudari \u{1F64F}",
+        "Halo semua, selamat pagi \u{1F44B}",
+        "Tuhan memberkati pagi ini \u{2728}",
+        "Pagi yang indah untuk bersyukur \u{1F33F}",
+        "Salam dalam kasih Tuhan \u{2764}",
     ]
-    tone = tone_variants[day_number % len(tone_variants)]
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    intros = [
+        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} \U0001F4D6",
+        f"Bacaan firman kita hari ini adalah {book_range} \U0001F4D6",
+        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} \U0001F4D6",
+        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} \U0001F4D6",
+        f"Bersama-sama kita mendengarkan {book_range} hari ini \U0001F4D6",
+        f"Hari ini kita membuka {book_range} bersama \U0001F4D6",
+        f"Jadwal bacaan kita hari ini: {book_range} \U0001F4D6",
+    ]
 
-    prompt = f"""Kamu adalah asisten yang membantu seorang pendeta membuat pesan harian untuk grup WhatsApp jemaat Indonesia di Korea.
+    closings = [
+        "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini \u2764\uFE0F",
+        "Kiranya firman-Nya menguatkan langkah kita hari ini \u2764\uFE0F",
+        "Selamat mendengarkan dan kiranya Tuhan berbicara kepada kita \u2764\uFE0F",
+        "Tuhan memberkati dan menguatkan kita semua hari ini \u2764\uFE0F",
+        "Mari tetap berjalan bersama Tuhan hari ini \u2764\uFE0F",
+        "Semoga firman-Nya menjadi pelita bagi langkah kita \u2764\uFE0F",
+        "Kiranya kita semakin mengenal Tuhan melalui firman-Nya \u2764\uFE0F",
+    ]
 
-Buatkan pesan WhatsApp untuk hari ini dengan format PERSIS seperti ini:
+    idx = day_number % 7
+    greeting = greetings[idx]
+    intro = intros[idx]
+    closing = closings[idx]
 
-[LINK]
+    return f"{links_text}\n\n{greeting}\n\n{intro}\n\n{closing}"
 
-[SALAM SINGKAT - 1 kalimat, informal, satu baris]
-
-[PEMBERITAHUAN BACAAN - 1-2 kalimat, sebutkan nama kitab dan pasal yang akan didengarkan hari ini]
-
-[KALIMAT MOTIVASI/DORONGAN IMAN - 1 kalimat + emoji hati]
-
-Ketentuan:
-- Nada hari ini: {tone}
-- Bacaan hari ini: {book_range}
-- Link yang harus dicantumkan PERSIS di baris pertama: {links_text}
-- Jika ada lebih dari 1 link, cantumkan semua link, masing-masing di baris terpisah
-- Gunakan sapaan yang bervariasi (Shalom, Selamat pagi, Syalom, dll) — JANGAN selalu "Shalom, selamat pagi"
-- Kalimat motivasi harus relevan dengan isi/tema kitab yang dibaca (kalau bisa)
-- JANGAN tambahkan penjelasan, tanda tangan, atau kalimat lain di luar format
-- Seluruh pesan dalam bahasa Indonesia
-
-Contoh format output (JANGAN copy isinya, hanya formatnya):
-https://www.bible.com/bible/306/HEB.12.TB
-https://www.bible.com/bible/306/HEB.13.TB
-
-Syalom, selamat pagi 😊
-
-Hari ini kita mendengarkan firman Tuhan dari kitab Ibrani pasal 12 dan 13 📖
-
-Mari kita terus berlari dengan tekun dalam iman kita ❤️"""
-
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    return message.content[0].text.strip()
-
-# ── Telegram send ──────────────────────────────────────────────────────────────
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": message,
-        "disable_web_page_preview": False
-    }
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "disable_web_page_preview": False}
     response = requests.post(url, json=payload)
     response.raise_for_status()
-    print(f"✅ Message sent to Telegram!")
+    print(f"Message sent!")
     return response.json()
 
-# ── Main ───────────────────────────────────────────────────────────────────────
 def main():
-    print(f"🕐 Running at {datetime.now()}")
-
+    print(f"Running at {datetime.now()}")
     chapters, day_number = get_todays_reading()
     book_range = format_chapter_range(chapters)
-    print(f"📖 Day {day_number}: {book_range}")
-
+    print(f"Day {day_number}: {book_range}")
     links = build_links(chapters)
-    for link in links:
-        print(f"🔗 {link}")
-
-    print("✍️  Generating message...")
     message = generate_message(chapters, links, day_number)
-    print(f"\n--- Message Preview ---\n{message}\n-----------------------\n")
-
+    print(f"--- Message ---\n{message}\n---")
     send_telegram(message)
 
 if __name__ == "__main__":
