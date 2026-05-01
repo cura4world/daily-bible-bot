@@ -39,11 +39,9 @@ def generate_message(chapters, day_number):
     book_range = format_chapter_range(chapters)
     first_ch = chapters[0]
     link = get_youversion_link(first_ch["youversion_book"], first_ch["chapter"])
-
     g_idx = day_number % 11
     i_idx = day_number % 13
     c_idx = day_number % 17
-
     greetings = [
         "Shalom, selamat pagi 😊",
         "Selamat pagi yang cerah! 🌞",
@@ -91,7 +89,6 @@ def generate_message(chapters, day_number):
         "Kiranya Tuhan berbicara kepada hati kita melalui firman-Nya ❤️",
         "Tetap semangat dalam firman Tuhan hari ini ❤️",
     ]
-
     return f"{link}\n\n{greetings[g_idx]}\n\n{intros[i_idx]}\n\n{closings[c_idx]}"
 
 def send_telegram(message):
