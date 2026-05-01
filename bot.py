@@ -6,11 +6,11 @@ from bible_data import get_reading_plan, get_youversion_link
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# 야고보서 1장 시작일 (2026-05-01 = plan[1])
+# 야고보서 1장 시작일 (2026-05-01 = plan[1]h)
 START_DATE = date(2026, 5, 1)
-START_INDEX = 1
-START_BOOK = "HEB"
-START_CHAPTER = 13
+START_INDEX = 0
+START_BOOK = "JAS"
+START_CHAPTER = 1
 
 def get_todays_reading():
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
