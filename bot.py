@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, json, random, requests
+import os, json, requests
 from datetime import datetime
 from bible_data import get_reading_plan, get_youversion_link
 
@@ -51,57 +51,50 @@ def format_chapter_range(chapters):
 def generate_message(chapters, links, day_number):
     book_range = format_chapter_range(chapters)
     links_text = "\n".join(links)
+    idx = day_number % 7
 
     greetings = [
-        "Shalom, selamat pagi \u{1F60A}",
-        "Syalom! Selamat pagi \u{1F31E}",
-        "Selamat pagi, saudara-saudari \u{1F64F}",
-        "Halo semua, selamat pagi \u{1F44B}",
-        "Tuhan memberkati pagi ini \u{2728}",
-        "Pagi yang indah untuk bersyukur \u{1F33F}",
-        "Salam dalam kasih Tuhan \u{2764}",
+        "Shalom, selamat pagi U0001F60A",
+        "Syalom! Selamat pagi U0001F31E",
+        "Selamat pagi, saudara-saudari U0001F64F",
+        "Halo semua, selamat pagi U0001F44B",
+        "Tuhan memberkati pagi ini U00002728",
+        "Pagi yang indah untuk bersyukur U0001F33F",
+        "Salam dalam kasih Tuhan U00002764",
     ]
-
     intros = [
-        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} \U0001F4D6",
-        f"Bacaan firman kita hari ini adalah {book_range} \U0001F4D6",
-        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} \U0001F4D6",
-        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} \U0001F4D6",
-        f"Bersama-sama kita mendengarkan {book_range} hari ini \U0001F4D6",
-        f"Hari ini kita membuka {book_range} bersama \U0001F4D6",
-        f"Jadwal bacaan kita hari ini: {book_range} \U0001F4D6",
+        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} U0001F4D6",
+        f"Bacaan firman kita hari ini adalah {book_range} U0001F4D6",
+        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} U0001F4D6",
+        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} U0001F4D6",
+        f"Bersama-sama kita mendengarkan {book_range} hari ini U0001F4D6",
+        f"Hari ini kita membuka {book_range} bersama U0001F4D6",
+        f"Jadwal bacaan kita hari ini: {book_range} U0001F4D6",
     ]
-
     closings = [
-        "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini \u2764\uFE0F",
-        "Kiranya firman-Nya menguatkan langkah kita hari ini \u2764\uFE0F",
-        "Selamat mendengarkan dan kiranya Tuhan berbicara kepada kita \u2764\uFE0F",
-        "Tuhan memberkati dan menguatkan kita semua hari ini \u2764\uFE0F",
-        "Mari tetap berjalan bersama Tuhan hari ini \u2764\uFE0F",
-        "Semoga firman-Nya menjadi pelita bagi langkah kita \u2764\uFE0F",
-        "Kiranya kita semakin mengenal Tuhan melalui firman-Nya \u2764\uFE0F",
+        "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini U00002764UFE0F",
+        "Kiranya firman-Nya menguatkan langkah kita hari ini U00002764UFE0F",
+        "Selamat mendengarkan dan kiranya Tuhan berbicara kepada kita U00002764UFE0F",
+        "Tuhan memberkati dan menguatkan kita semua hari ini U00002764UFE0F",
+        "Mari tetap berjalan bersama Tuhan hari ini U00002764UFE0F",
+        "Semoga firman-Nya menjadi pelita bagi langkah kita U00002764UFE0F",
+        "Kiranya kita semakin mengenal Tuhan melalui firman-Nya U00002764UFE0F",
     ]
 
-    idx = day_number % 7
-    greeting = greetings[idx]
-    intro = intros[idx]
-    closing = closings[idx]
-
-    return f"{links_text}\n\n{greeting}\n\n{intro}\n\n{closing}"
+    return f"{links_text}\n\n{greetings[idx]}\n\n{intros[idx]}\n\n{closings[idx]}"
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "disable_web_page_preview": False}
     response = requests.post(url, json=payload)
     response.raise_for_status()
-    print(f"Message sent!")
+    print("Message sent!")
     return response.json()
 
 def main():
     print(f"Running at {datetime.now()}")
     chapters, day_number = get_todays_reading()
-    book_range = format_chapter_range(chapters)
-    print(f"Day {day_number}: {book_range}")
+    print(f"Day {day_number}: {format_chapter_range(chapters)}")
     links = build_links(chapters)
     message = generate_message(chapters, links, day_number)
     print(f"--- Message ---\n{message}\n---")
