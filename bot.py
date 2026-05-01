@@ -52,22 +52,22 @@ def generate_message(chapters, day_number):
     idx = day_number % 7
 
     greetings = [
-        "Shalom, selamat pagi U0001f60a",
-        "Syalom! Selamat pagi U0001f31e",
-        "Selamat pagi, saudara-saudari U0001f64f",
-        "Halo semua, selamat pagi U0001f44b",
+        "Shalom, selamat pagi 😊",
+        "Selamat pagi yang cerah! 🌞",
+        "Selamat pagi, saudara-saudari 🙏",
+        "Halo semua, selamat pagi 👋",
         "Tuhan memberkati pagi ini ✨",
-        "Pagi yang indah untuk bersyukur U0001f33f",
+        "Pagi yang indah untuk bersyukur 🌿",
         "Salam dalam kasih Tuhan ❤️",
     ]
     intros = [
-        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} U0001f4d6",
-        f"Bacaan firman kita hari ini adalah {book_range} U0001f4d6",
-        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} U0001f4d6",
-        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} U0001f4d6",
-        f"Bersama-sama kita mendengarkan {book_range} hari ini U0001f4d6",
-        f"Hari ini kita membuka {book_range} bersama U0001f4d6",
-        f"Jadwal bacaan kita hari ini: {book_range} U0001f4d6",
+        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} 📖",
+        f"Bacaan firman kita hari ini adalah {book_range} 📖",
+        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} 📖",
+        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} 📖",
+        f"Bersama-sama kita mendengarkan {book_range} hari ini 📖",
+        f"Hari ini kita membuka {book_range} bersama 📖",
+        f"Jadwal bacaan kita hari ini: {book_range} 📖",
     ]
     closings = [
         "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini ❤️",
