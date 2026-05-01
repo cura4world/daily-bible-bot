@@ -6,18 +6,32 @@ from bible_data import get_reading_plan, get_youversion_link
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# 야고보서 1장 시작일 (2026-05-01 = plan[1]h)
+# 시작일: 2026-05-01 (금) = 야고보서 1장 (plan[0])
 START_DATE = date(2026, 5, 1)
 START_INDEX = 0
 START_BOOK = "JAS"
 START_CHAPTER = 1
 
 def get_todays_reading():
+    today = date.today()
+
+    # 일요일(weekday==6)은 메시지 없음
+    if today.weekday() == 6:
+        return None, None
+
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
-    days_elapsed = (date.today() - START_DATE).days
-    day_index = START_INDEX + days_elapsed
+    days_elapsed = (today - START_DATE).days
+
+    # 시작일 이후 지나친 일요일 수 (시작일 당일 제외)
+    sundays_passed = sum(
+        1 for i in range(days_elapsed)
+        if (START_DATE.toordinal() + i) % 7 == 6
+    )
+
+    day_index = START_INDEX + days_elapsed - sundays_passed
     if day_index >= len(plan):
         day_index = day_index % len(plan)
+
     return plan[day_index], day_index + 1
 
 def format_chapter_range(chapters):
@@ -53,22 +67,22 @@ def generate_message(chapters, day_number):
         "Selamat pagi! Kiranya hari ini penuh berkat 🌅",
         "Hai, selamat pagi 😄",
         "Dengan sukacita menyapa kalian pagi ini 🌸",
-        "Pagi ini kita mulai dengan firman Tuhan 📖",
+        "Pagi ini kita mulai dengan firman Tuhan 📚",
     ]
     intros = [
-        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} 📖",
-        f"Bacaan firman kita hari ini adalah {book_range} 📖",
-        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} 📖",
-        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} 📖",
-        f"Bersama-sama kita mendengarkan {book_range} hari ini 📖",
-        f"Hari ini kita membuka {book_range} bersama 📖",
-        f"Jadwal bacaan kita hari ini: {book_range} 📖",
-        f"Yuk, kita dengarkan {book_range} bersama hari ini 📖",
-        f"Firman hari ini dari {book_range} — mari kita simak bersama 📖",
-        f"Kita lanjutkan perjalanan firman kita hari ini di {book_range} 📖",
-        f"Untuk hari ini, kita membaca {book_range} 📖",
-        f"Kiranya {book_range} memberkati kita hari ini 📖",
-        f"Dengarkanlah firman Tuhan hari ini dari {book_range} 📖",
+        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} 📚",
+        f"Bacaan firman kita hari ini adalah {book_range} 📚",
+        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} 📚",
+        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} 📚",
+        f"Bersama-sama kita mendengarkan {book_range} hari ini 📚",
+        f"Hari ini kita membuka {book_range} bersama 📚",
+        f"Jadwal bacaan kita hari ini: {book_range} 📚",
+        f"Yuk, kita dengarkan {book_range} bersama hari ini 📚",
+        f"Firman hari ini dari {book_range} — mari kita simak bersama 📚",
+        f"Kita lanjutkan perjalanan firman kita hari ini di {book_range} 📚",
+        f"Untuk hari ini, kita membaca {book_range} 📚",
+        f"Kiranya {book_range} memberkati kita hari ini 📚",
+        f"Dengarkanlah firman Tuhan hari ini dari {book_range} 📚",
     ]
     closings = [
         "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini ❤️",
@@ -100,8 +114,15 @@ def send_telegram(message):
 
 def main():
     from datetime import datetime
-    print(f"Running at {datetime.now()}, today={date.today()}")
+    today = date.today()
+    print(f"Running at {datetime.now()}, today={today} ({today.strftime('%A')})")
+
     chapters, day_number = get_todays_reading()
+
+    if chapters is None:
+        print("Today is Sunday — no message sent (offline reading day).")
+        return
+
     print(f"Day {day_number}: {format_chapter_range(chapters)}")
     message = generate_message(chapters, day_number)
     print(f"--- Message ---\n{message}\n---")
