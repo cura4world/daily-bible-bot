@@ -30,9 +30,6 @@ def get_todays_reading():
     save_progress(progress)
     return chapters, day_index + 1
 
-def build_links(chapters):
-    return [get_youversion_link(ch["youversion_book"], ch["chapter"]) for ch in chapters]
-
 def format_chapter_range(chapters):
     if len(chapters) == 1:
         ch = chapters[0]
@@ -48,40 +45,41 @@ def format_chapter_range(chapters):
         return f"{parts[0]} dan {parts[1]}"
     return f"{', '.join(parts[:-1])}, dan {parts[-1]}"
 
-def generate_message(chapters, links, day_number):
+def generate_message(chapters, day_number):
     book_range = format_chapter_range(chapters)
-    links_text = "\n".join(links)
+    first_ch = chapters[0]
+    link = get_youversion_link(first_ch["youversion_book"], first_ch["chapter"])
     idx = day_number % 7
 
     greetings = [
-        "Shalom, selamat pagi U0001F60A",
-        "Syalom! Selamat pagi U0001F31E",
-        "Selamat pagi, saudara-saudari U0001F64F",
-        "Halo semua, selamat pagi U0001F44B",
-        "Tuhan memberkati pagi ini U00002728",
-        "Pagi yang indah untuk bersyukur U0001F33F",
-        "Salam dalam kasih Tuhan U00002764",
+        "Shalom, selamat pagi U0001f60a",
+        "Syalom! Selamat pagi U0001f31e",
+        "Selamat pagi, saudara-saudari U0001f64f",
+        "Halo semua, selamat pagi U0001f44b",
+        "Tuhan memberkati pagi ini ✨",
+        "Pagi yang indah untuk bersyukur U0001f33f",
+        "Salam dalam kasih Tuhan ❤️",
     ]
     intros = [
-        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} U0001F4D6",
-        f"Bacaan firman kita hari ini adalah {book_range} U0001F4D6",
-        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} U0001F4D6",
-        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} U0001F4D6",
-        f"Bersama-sama kita mendengarkan {book_range} hari ini U0001F4D6",
-        f"Hari ini kita membuka {book_range} bersama U0001F4D6",
-        f"Jadwal bacaan kita hari ini: {book_range} U0001F4D6",
+        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} U0001f4d6",
+        f"Bacaan firman kita hari ini adalah {book_range} U0001f4d6",
+        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} U0001f4d6",
+        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} U0001f4d6",
+        f"Bersama-sama kita mendengarkan {book_range} hari ini U0001f4d6",
+        f"Hari ini kita membuka {book_range} bersama U0001f4d6",
+        f"Jadwal bacaan kita hari ini: {book_range} U0001f4d6",
     ]
     closings = [
-        "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini U00002764UFE0F",
-        "Kiranya firman-Nya menguatkan langkah kita hari ini U00002764UFE0F",
-        "Selamat mendengarkan dan kiranya Tuhan berbicara kepada kita U00002764UFE0F",
-        "Tuhan memberkati dan menguatkan kita semua hari ini U00002764UFE0F",
-        "Mari tetap berjalan bersama Tuhan hari ini U00002764UFE0F",
-        "Semoga firman-Nya menjadi pelita bagi langkah kita U00002764UFE0F",
-        "Kiranya kita semakin mengenal Tuhan melalui firman-Nya U00002764UFE0F",
+        "Mari kita hidup dalam iman dan ketaatan kepada Tuhan hari ini ❤️",
+        "Kiranya firman-Nya menguatkan langkah kita hari ini ❤️",
+        "Selamat mendengarkan dan kiranya Tuhan berbicara kepada kita ❤️",
+        "Tuhan memberkati dan menguatkan kita semua hari ini ❤️",
+        "Mari tetap berjalan bersama Tuhan hari ini ❤️",
+        "Semoga firman-Nya menjadi pelita bagi langkah kita ❤️",
+        "Kiranya kita semakin mengenal Tuhan melalui firman-Nya ❤️",
     ]
 
-    return f"{links_text}\n\n{greetings[idx]}\n\n{intros[idx]}\n\n{closings[idx]}"
+    return f"{link}\n\n{greetings[idx]}\n\n{intros[idx]}\n\n{closings[idx]}"
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -95,8 +93,7 @@ def main():
     print(f"Running at {datetime.now()}")
     chapters, day_number = get_todays_reading()
     print(f"Day {day_number}: {format_chapter_range(chapters)}")
-    links = build_links(chapters)
-    message = generate_message(chapters, links, day_number)
+    message = generate_message(chapters, day_number)
     print(f"--- Message ---\n{message}\n---")
     send_telegram(message)
 
