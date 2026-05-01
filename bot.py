@@ -37,44 +37,52 @@ def format_chapter_range(chapters):
     books = list(dict.fromkeys(ch["book_name"] for ch in chapters))
     if len(books) == 1:
         nums = [str(ch["chapter"]) for ch in chapters]
-        def generate_message(chapters, day_number):
+        if len(nums) == 2:
+            return f"{books[0]} pasal {nums[0]} dan {nums[1]}"
+        return f"{books[0]} pasal {', '.join(nums[:-1])}, dan {nums[-1]}"
+    parts = [f"{ch['book_name']} pasal {ch['chapter']}" for ch in chapters]
+    if len(parts) == 2:
+        return f"{parts[0]} dan {parts[1]}"
+    return f"{', '.join(parts[:-1])}, dan {parts[-1]}"
+
+def generate_message(chapters, day_number):
     book_range = format_chapter_range(chapters)
     first_ch = chapters[0]
     link = get_youversion_link(first_ch["youversion_book"], first_ch["chapter"])
 
-    # 소수로 나눠서 조합이 최대한 겹치지 않게 (11x13x17 = 2,431가지 조합)
+    # 서로소(11, 13, 17)로 나눠 조합이 겹치지 않음 → 최대 2,431가지 조합
     g_idx = day_number % 11
     i_idx = day_number % 13
     c_idx = day_number % 17
 
     greetings = [
-        "Shalom, selamat pagi 😊",
-        "Selamat pagi yang cerah! 🌞",
-        "Selamat pagi, saudara-saudari 🙏",
-        "Halo semua, selamat pagi 👋",
+        "Shalom, selamat pagi U0001f60a",
+        "Selamat pagi yang cerah! U0001f31e",
+        "Selamat pagi, saudara-saudari U0001f64f",
+        "Halo semua, selamat pagi U0001f44b",
         "Tuhan memberkati pagi ini ✨",
-        "Pagi yang indah untuk bersyukur 🌿",
+        "Pagi yang indah untuk bersyukur U0001f33f",
         "Salam dalam kasih Tuhan ❤️",
-        "Selamat pagi! Kiranya hari ini penuh berkat 🌅",
-        "Hai, selamat pagi 😄",
-        "Dengan sukacita menyapa kalian pagi ini 🌸",
-        "Pagi ini kita mulai dengan firman Tuhan 📖",
+        "Selamat pagi! Kiranya hari ini penuh berkat U0001f305",
+        "Hai, selamat pagi U0001f604",
+        "Dengan sukacita menyapa kalian pagi ini U0001f338",
+        "Pagi ini kita mulai dengan firman Tuhan U0001f4d6",
     ]
 
     intros = [
-        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} 📖",
-        f"Bacaan firman kita hari ini adalah {book_range} 📖",
-        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} 📖",
-        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} 📖",
-        f"Bersama-sama kita mendengarkan {book_range} hari ini 📖",
-        f"Hari ini kita membuka {book_range} bersama 📖",
-        f"Jadwal bacaan kita hari ini: {book_range} 📖",
-        f"Yuk, kita dengarkan {book_range} bersama hari ini 📖",
-        f"Firman hari ini dari {book_range} — mari kita simak bersama 📖",
-        f"Kita lanjutkan perjalanan firman kita hari ini di {book_range} 📖",
-        f"Untuk hari ini, kita membaca {book_range} 📖",
-        f"Kiranya {book_range} memberkati kita hari ini 📖",
-        f"Dengarkanlah firman Tuhan hari ini dari {book_range} 📖",
+        f"Hari ini kita akan bersama-sama mendengarkan firman Tuhan dari kitab {book_range} U0001f4d6",
+        f"Bacaan firman kita hari ini adalah {book_range} U0001f4d6",
+        f"Mari kita dengarkan firman Tuhan hari ini dari {book_range} U0001f4d6",
+        f"Firman Tuhan untuk kita hari ini diambil dari {book_range} U0001f4d6",
+        f"Bersama-sama kita mendengarkan {book_range} hari ini U0001f4d6",
+        f"Hari ini kita membuka {book_range} bersama U0001f4d6",
+        f"Jadwal bacaan kita hari ini: {book_range} U0001f4d6",
+        f"Yuk, kita dengarkan {book_range} bersama hari ini U0001f4d6",
+        f"Firman hari ini dari {book_range} — mari kita simak bersama U0001f4d6",
+        f"Kita lanjutkan perjalanan firman kita hari ini di {book_range} U0001f4d6",
+        f"Untuk hari ini, kita membaca {book_range} U0001f4d6",
+        f"Kiranya {book_range} memberkati kita hari ini U0001f4d6",
+        f"Dengarkanlah firman Tuhan hari ini dari {book_range} U0001f4d6",
     ]
 
     closings = [
@@ -98,13 +106,6 @@ def format_chapter_range(chapters):
     ]
 
     return f"{link}\n\n{greetings[g_idx]}\n\n{intros[i_idx]}\n\n{closings[c_idx]}"
-        "Tuhan memberkati dan menguatkan kita semua hari ini ❤️",
-        "Mari tetap berjalan bersama Tuhan hari ini ❤️",
-        "Semoga firman-Nya menjadi pelita bagi langkah kita ❤️",
-        "Kiranya kita semakin mengenal Tuhan melalui firman-Nya ❤️",
-    ]
-
-    return f"{link}\n\n{greetings[idx]}\n\n{intros[idx]}\n\n{closings[idx]}"
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
