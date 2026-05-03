@@ -1,38 +1,40 @@
 #!/usr/bin/env python3
 import os, requests
-from datetime import date
+from datetime import date, timedelta
 from bible_data import get_reading_plan, get_youversion_link
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# 시작일: 2026-05-01 (금) = 야고보서 1장 (plan[0])
-START_DATE = date(2026, 5, 1)
+# 시작일: 2026-05-04 (월) = 베드로전서 2장 (plan[0])
+START_DATE = date(2026, 5, 4)
 START_INDEX = 0
-START_BOOK = "JAS"
-START_CHAPTER = 1
+START_BOOK = "1PE"
+START_CHAPTER = 2
 
 def get_todays_reading():
     today = date.today()
-
-    # 일요일(weekday==6)은 메시지 없음
-    if today.weekday() == 6:
-        return None, None
-
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
     days_elapsed = (today - START_DATE).days
 
-    # 시작일 이후 지나친 일요일 수 (시작일 당일 제외)
+    # 시작일 이후 지나친 일요일 수 (시작일 당일 제외, weekday 기반으로 정확하게 계산)
     sundays_passed = sum(
         1 for i in range(days_elapsed)
-        if (START_DATE.toordinal() + i) % 7 == 6
+        if (START_DATE + timedelta(days=i)).weekday() == 6
     )
 
-    day_index = START_INDEX + days_elapsed - sundays_passed
-    if day_index >= len(plan):
-        day_index = day_index % len(plan)
+    # plan_slot: 일요일 포함 매일 1씩 전진
+    plan_slot = START_INDEX + days_elapsed
+    if plan_slot >= len(plan):
+        plan_slot = plan_slot % len(plan)
 
-    return plan[day_index], day_index + 1
+    if today.weekday() == 6:
+        # 일요일: 다음 순서 첫 장 링크만 발송, day_count 카운트 안 함
+        return [plan[plan_slot][0]], None
+
+    # 평일: day_count는 일요일 제외
+    day_count = days_elapsed - sundays_passed
+    return plan[plan_slot], day_count + 1
 
 def format_chapter_range(chapters):
     if len(chapters) == 1:
@@ -119,8 +121,13 @@ def main():
 
     chapters, day_number = get_todays_reading()
 
-    if chapters is None:
-        print("Today is Sunday — no message sent (offline reading day).")
+    if day_number is None:
+        # 일요일: 첫 장 링크만 발송
+        first_ch = chapters[0]
+        link = get_youversion_link(first_ch["youversion_book"], first_ch["chapter"])
+        print(f"Sunday - link only: {first_ch['book_name']} pasal {first_ch['chapter']}")
+        print(f"--- Message ---\n{link}\n---")
+        send_telegram(link)
         return
 
     print(f"Day {day_number}: {format_chapter_range(chapters)}")
