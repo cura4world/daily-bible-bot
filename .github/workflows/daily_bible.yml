@@ -2,13 +2,7 @@ name: Daily Bible Bot
 
 on:
   schedule:
-    - cron: '0 22 * * *'
-    - cron: '10 22 * * *'
-    - cron: '20 22 * * *'
-    - cron: '30 22 * * *'
-    - cron: '40 22 * * *'
-    - cron: '50 22 * * *'
-    - cron: '0 23 * * *'
+    - cron: '0 21 * * *'  # 매일 06:00 KST (= UTC 21:00)
   workflow_dispatch:
 
 jobs:
@@ -18,37 +12,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Random slot check (skip for manual runs)
-        id: random_check
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "proceed=true" >> $GITHUB_OUTPUT
-          else
-            MINUTE=$(date -u +%M)
-            SLOT=$((MINUTE / 10))
-            RANDOM_SLOT=$((RANDOM % 7))
-            if [ "$SLOT" -eq "$RANDOM_SLOT" ]; then
-              echo "proceed=true" >> $GITHUB_OUTPUT
-            else
-              echo "proceed=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-
       - name: Set up Python
-        if: steps.random_check.outputs.proceed == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
-        if: steps.random_check.outputs.proceed == 'true'
-        run: pip install anthropic requests
+        run: pip install requests
 
       - name: Run Bible Bot
-        if: steps.random_check.outputs.proceed == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python bot.py
-

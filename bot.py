@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import os, requests
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from bible_data import get_reading_plan, get_youversion_link
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+
+# KST = UTC+9 (GitHub Actions는 UTC 기준으로 실행되므로 명시적으로 KST 사용)
+KST = timezone(timedelta(hours=9))
 
 # 시작일: 2026-05-04 (월) = 베드로전서 2장 (plan[0])
 START_DATE = date(2026, 5, 4)
@@ -13,9 +16,12 @@ START_BOOK = "1PE"
 START_CHAPTER = 2
 
 def get_todays_reading():
-    today = date.today()
+    today = datetime.now(KST).date()  # UTC가 아닌 KST 기준 날짜
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
     days_elapsed = (today - START_DATE).days
+
+    if days_elapsed < 0:
+        return None, None  # 시작일 이전
 
     # 시작일 이후 지나친 일요일 수 (시작일 당일 제외, weekday 기반으로 정확하게 계산)
     sundays_passed = sum(
@@ -115,11 +121,15 @@ def send_telegram(message):
     print("Message sent!")
 
 def main():
-    from datetime import datetime
-    today = date.today()
-    print(f"Running at {datetime.now()}, today={today} ({today.strftime('%A')})")
+    now = datetime.now(KST)
+    today = now.date()
+    print(f"Running at {now} (KST), today={today} ({today.strftime('%A')})")
 
     chapters, day_number = get_todays_reading()
+
+    if chapters is None:
+        print("Before start date — no message sent.")
+        return
 
     if day_number is None:
         # 일요일: 첫 장 링크만 발송

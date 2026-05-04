@@ -507,7 +507,7 @@ READING_ORDER = [
 # YouVersion Bible version code for Indonesian TB
 YOUVERSION_VERSION = 306  # Terjemahan Baru (TB)
 
-THRESHOLD_SECONDS = 7 * 60  # 7 minutes
+THRESHOLD_SECONDS = 260  # ~4분20초: 이상이면 2장, 미만이면 3장
 
 def get_flat_chapter_list():
     """Returns a flat list of (book_code, chapter_number) in reading order."""
