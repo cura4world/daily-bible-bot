@@ -10,7 +10,7 @@ TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 KST = timezone(timedelta(hours=9))
 
 # 시작일: 2026-05-04 (월) = 베드로전서 2장 (plan[0])
-START_DATE = date(2026, 5, 4)
+START_DATE = date(2026, 5, 5)
 START_INDEX = 0
 START_BOOK = "1PE"
 START_CHAPTER = 2
