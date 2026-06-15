@@ -9,36 +9,32 @@ TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 # KST = UTC+9 (GitHub Actions는 UTC 기준으로 실행되므로 명시적으로 KST 사용)
 KST = timezone(timedelta(hours=9))
 
-# 시작일: 2026-05-04 (월) = 베드로전서 2장 (plan[0])
-START_DATE = date(2026, 5, 5)
+# 시작일: 2026-06-16 (화) = 창세기 44장 (plan[0])
+START_DATE = date(2026, 6, 16)
 START_INDEX = 0
-START_BOOK = "1PE"
-START_CHAPTER = 2
+START_BOOK = "GEN"
+START_CHAPTER = 44
 
 def get_todays_reading():
-    today = datetime.now(KST).date()  # UTC가 아닌 KST 기준 날짜
+    today = datetime.now(KST).date()
     plan = get_reading_plan(START_BOOK, START_CHAPTER)
     days_elapsed = (today - START_DATE).days
 
     if days_elapsed < 0:
-        return None, None  # 시작일 이전
+        return None, None
 
-    # 시작일 이후 지나친 일요일 수 (시작일 당일 제외, weekday 기반으로 정확하게 계산)
     sundays_passed = sum(
         1 for i in range(days_elapsed)
         if (START_DATE + timedelta(days=i)).weekday() == 6
     )
 
-    # plan_slot: 일요일 포함 매일 1씩 전진
-    plan_slot = START_INDEX + days_elapsed
+    plan_slot = START_INDEX + days_elapsed - sundays_passed
     if plan_slot >= len(plan):
         plan_slot = plan_slot % len(plan)
 
     if today.weekday() == 6:
-        # 일요일: 다음 순서 첫 장 링크만 발송, day_count 카운트 안 함
         return [plan[plan_slot][0]], None
 
-    # 평일: day_count는 일요일 제외
     day_count = days_elapsed - sundays_passed
     return plan[plan_slot], day_count + 1
 
@@ -132,7 +128,6 @@ def main():
         return
 
     if day_number is None:
-        # 일요일: 첫 장 링크만 발송
         first_ch = chapters[0]
         link = get_youversion_link(first_ch["youversion_book"], first_ch["chapter"])
         print(f"Sunday - link only: {first_ch['book_name']} pasal {first_ch['chapter']}")
