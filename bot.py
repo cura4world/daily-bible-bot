@@ -13,7 +13,7 @@ KST = timezone(timedelta(hours=9))
 START_DATE = date(2026, 6, 16)
 START_INDEX = 0
 START_BOOK = "GEN"
-START_CHAPTER = 44
+START_CHAPTER = 45
 
 def get_todays_reading():
     today = datetime.now(KST).date()
