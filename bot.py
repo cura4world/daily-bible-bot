@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+Page_DownPage_DownPage_DownPage_DownPage_Down#!/usr/bin/env python3
 import os, requests
 from datetime import datetime, date, timedelta, timezone
-from bible_data import get_reading_plan, get_youversion_link
+from bible_data import get_flat_chapter_list, get_youversion_link, THRESHOLD_SECONDS
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -9,34 +9,65 @@ TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 # KST = UTC+9 (GitHub Actions는 UTC 기준으로 실행되므로 명시적으로 KST 사용)
 KST = timezone(timedelta(hours=9))
 
-# 시작일: 2026-06-16 (화) = 창세기 44장 (plan[0])
-START_DATE = date(2026, 6, 16)
-START_INDEX = 0
-START_BOOK = "GEN"
-START_CHAPTER = 45
+# ── 앵커(기준점) ──────────────────────────────────────────────
+# START_DATE에 START_BOOK의 START_CHAPTER부터 읽기 시작한다.
+# 이후 일정은 앵커부터 하루씩 걸어오며 계산한다:
+#   · 월~토: 첫 장이 THRESHOLD_SECONDS 이상이면 2장, 미만이면 3장,
+#            단독 1장짜리 책은 1장
+#   · 일요일: 딱 1장만 소비 (예배에서 함께 읽는 장)
+#   → 월요일은 일요일에 읽은 장의 "다음 장"부터 자동으로 이어진다.
+#     (일요일 장이 월요일에 중복되거나 일정이 밀리는 일이 구조적으로 불가능)
+# 일정을 옮겨야 할 때는 아래 세 값만 바꾸면 된다.
+START_DATE = date(2026, 7, 4)   # 토요일
+START_BOOK = "EXO"
+START_CHAPTER = 28
 
-def get_todays_reading():
-    today = datetime.now(KST).date()
-    plan = get_reading_plan(START_BOOK, START_CHAPTER)
-    days_elapsed = (today - START_DATE).days
+def _group_starting_at(flat, i):
+    """평일 하루치 묶음 규칙 (bible_data.get_reading_plan과 동일, 성경 전체 순환 지원)."""
+    n = len(flat)
+    ch = flat[i % n]
+    if ch["total_chapters"] == 1:
+        return [ch]
+    if ch["duration"] >= THRESHOLD_SECONDS:
+        nxt = flat[(i + 1) % n]
+        if nxt["total_chapters"] > 1:
+            return [ch, nxt]
+        return [ch]
+    day = []
+    j = 0
+    while j < 3:
+        nxt = flat[(i + j) % n]
+        if nxt["total_chapters"] == 1 and j > 0:
+            break
+        day.append(nxt)
+        j += 1
+    return day
 
-    if days_elapsed < 0:
+def get_todays_reading(today=None):
+    """앵커부터 하루씩 걸어오며 오늘 읽을 장을 계산한다.
+    일요일은 정확히 1장만 소비하므로, 월요일은 항상 그 다음 장에서 시작된다."""
+    if today is None:
+        today = datetime.now(KST).date()
+    if (today - START_DATE).days < 0:
         return None, None
 
-    sundays_passed = sum(
-        1 for i in range(days_elapsed)
-        if (START_DATE + timedelta(days=i)).weekday() == 6
-    )
+    flat = get_flat_chapter_list()
+    n = len(flat)
+    pos = next(i for i, ch in enumerate(flat)
+               if ch["book_code"] == START_BOOK and ch["chapter"] == START_CHAPTER)
 
-    plan_slot = START_INDEX + days_elapsed - sundays_passed
-    if plan_slot >= len(plan):
-        plan_slot = plan_slot % len(plan)
-
-    if today.weekday() == 6:
-        return [plan[plan_slot][0]], None
-
-    day_count = days_elapsed - sundays_passed
-    return plan[plan_slot], day_count + 1
+    d = START_DATE
+    day_count = 0
+    while True:
+        if d.weekday() == 6:              # 일요일: 1장만
+            todays = [flat[pos % n]]
+        else:                             # 월~토: 묶음 규칙대로
+            todays = _group_starting_at(flat, pos)
+            day_count += 1
+        if d == today:
+            return (todays, None) if d.weekday() == 6 else (todays, day_count)
+        pos += len(todays)                # 오늘 읽은 만큼 '정확히' 소비
+        d += timedelta(days=1)
 
 def format_chapter_range(chapters):
     if len(chapters) == 1:
