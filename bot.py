@@ -1,4 +1,4 @@
-Page_DownPage_DownPage_DownPage_DownPage_Down#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os, requests
 from datetime import datetime, date, timedelta, timezone
 from bible_data import get_flat_chapter_list, get_youversion_link, THRESHOLD_SECONDS
