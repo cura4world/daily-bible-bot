@@ -2,25 +2,57 @@ name: Daily Bible Bot
 
 on:
   schedule:
-    - cron: '0 21 * * *'  # 매일 06:00 KST (= UTC 21:00)
-  workflow_dispatch:
+    # GitHub 무료 플랜의 정각(:00) 크론 지연이 심해 :17분 슬롯으로 3회 등록.
+    # 아래 "Skip if already sent today" 스텝이 하루 1회만 발송되도록 보장한다.
+    - cron: '17 20 * * *'  # KST 05:17
+    - cron: '17 21 * * *'  # KST 06:17
+    - cron: '17 22 * * *'  # KST 07:17
+  workflow_dispatch:      # 수동 실행은 항상 즉시 발송
+
+concurrency:
+  group: daily-bible
+  cancel-in-progress: false
 
 jobs:
   send-bible-message:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
+      - name: Skip if already sent today (KST)
+        id: check
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TODAY=$(TZ=Asia/Seoul date +%F)
+          COUNT=$(gh api "repos/${{ github.repository }}/actions/workflows/daily_bible.yml/runs?status=success&per_page=10" \
+            --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(((.created_at | fromdateiso8601) + 32400 | strftime(\"%Y-%m-%d\")) == \"$TODAY\")] | length")
+          echo "Successful runs already today ($TODAY KST): $COUNT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "already_sent=true" >> "$GITHUB_OUTPUT"
+            echo "Already sent today - skipping."
+          else
+            echo "already_sent=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repo
+        if: steps.check.outputs.already_sent != 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.check.outputs.already_sent != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
+        if: steps.check.outputs.already_sent != 'true'
         run: pip install requests
 
       - name: Run Bible Bot
+        if: steps.check.outputs.already_sent != 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
