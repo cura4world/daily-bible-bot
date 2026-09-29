@@ -2,11 +2,11 @@ name: Daily Bible Bot
 
 on:
   schedule:
-    # GitHub 무료 플랜의 정각(:00) 크론 지연이 심해 :17분 슬롯으로 3회 등록.
-    # 아래 "Skip if already sent today" 스텝이 하루 1회만 발송되도록 보장한다.
+    # GitHub 무료 플랜의 크론 지연(2~4시간)을 감안해 이른 :17분 슬롯으로 3회 등록.
+    # 아래 "Skip if already sent today" 스텝(last_sent.txt 기준)이 하루 1회만 발송되도록 보장한다.
+    - cron: '17 19 * * *'  # KST 04:17
     - cron: '17 20 * * *'  # KST 05:17
     - cron: '17 21 * * *'  # KST 06:17
-    - cron: '17 22 * * *'  # KST 07:17
   workflow_dispatch:      # 수동 실행은 항상 즉시 발송
 
 concurrency:
@@ -17,29 +17,24 @@ jobs:
   send-bible-message:
     runs-on: ubuntu-latest
     permissions:
-      actions: read
-      contents: read
+      contents: write
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Skip if already sent today (KST)
         id: check
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           TODAY=$(TZ=Asia/Seoul date +%F)
-          COUNT=$(gh api "repos/${{ github.repository }}/actions/workflows/daily_bible.yml/runs?status=success&per_page=10" \
-            --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(((.created_at | fromdateiso8601) + 32400 | strftime(\"%Y-%m-%d\")) == \"$TODAY\")] | length")
-          echo "Successful runs already today ($TODAY KST): $COUNT"
-          if [ "$COUNT" -gt 0 ]; then
+          LAST=$(cat last_sent.txt 2>/dev/null || echo none)
+          echo "today=$TODAY last_sent=$LAST event=${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$LAST" = "$TODAY" ]; then
             echo "already_sent=true" >> "$GITHUB_OUTPUT"
             echo "Already sent today - skipping."
           else
             echo "already_sent=false" >> "$GITHUB_OUTPUT"
+            echo "today=$TODAY" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Checkout repo
-        if: steps.check.outputs.already_sent != 'true'
-        uses: actions/checkout@v4
 
       - name: Set up Python
         if: steps.check.outputs.already_sent != 'true'
@@ -57,3 +52,14 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python bot.py
+
+      - name: Record last_sent
+        if: steps.check.outputs.already_sent != 'true'
+        run: |
+          echo "${{ steps.check.outputs.today }}" > last_sent.txt
+          git config user.name "daily-bible-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add last_sent.txt
+          git commit -m "sent ${{ steps.check.outputs.today }}" || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
