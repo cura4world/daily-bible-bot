@@ -2,8 +2,10 @@ name: Daily Bible Bot
 
 on:
   schedule:
-    # GitHub 무료 플랜의 크론 지연(2~4시간)을 감안해 이른 :17분 슬롯으로 3회 등록.
+    # GitHub 무료 플랜의 크론 지연(2~6시간)을 감안해 새벽 2시부터 :17분 슬롯으로 5회 등록.
     # 아래 "Skip if already sent today" 스텝(last_sent.txt 기준)이 하루 1회만 발송되도록 보장한다.
+    - cron: '17 17 * * *'  # KST 02:17
+    - cron: '17 18 * * *'  # KST 03:17
     - cron: '17 19 * * *'  # KST 04:17
     - cron: '17 20 * * *'  # KST 05:17
     - cron: '17 21 * * *'  # KST 06:17
