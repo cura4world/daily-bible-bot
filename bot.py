@@ -142,7 +142,7 @@ def generate_message(chapters, day_number):
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "disable_web_page_preview": False}
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "disable_web_page_preview": False, "disable_notification": True}
     response = requests.post(url, json=payload)
     response.raise_for_status()
     print("Message sent!")
